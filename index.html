@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProctorAI — 지능형 시험 감독 시스템</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Pretendard:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #0f1525;
+    --bg3: #141c2e;
+    --panel: #1a2236;
+    --border: #243050;
+    --accent: #3b82f6;
+    --accent2: #6366f1;
+    --ok: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Pretendard', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SETUP SCREEN ── */
+  #setup-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+    background: var(--bg);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .logo-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+
+  .logo h1 {
+    font-family: var(--mono);
+    font-size: 28px;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #60a5fa, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 40px;
+    font-weight: 300;
+  }
+
+  .setup-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .setup-section {
+    margin-bottom: 28px;
+  }
+
+  .setup-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .input-field {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: var(--sans);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-field:focus { border-color: var(--accent); }
+
+  textarea.input-field { resize: vertical; min-height: 100px; }
+
+  .api-row {
+    display: flex;
+    gap: 10px;
+  }
+  .api-row .input-field { flex: 1; font-family: var(--mono); font-size: 13px; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+
+  .toggle-info { display: flex; flex-direction: column; gap: 2px; }
+  .toggle-name { font-size: 14px; font-weight: 500; }
+  .toggle-desc { font-size: 12px; color: var(--muted); }
+
+  .toggle {
+    position: relative;
+    width: 44px; height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(20px); }
+
+  .start-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 8px;
+  }
+  .start-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .start-btn:active { transform: translateY(0); }
+
+  /* ── EXAM SCREEN ── */
+  #exam-screen {
+    display: none;
+    min-height: 100vh;
+    flex-direction: column;
+  }
+
+  /* Top Bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+
+  .mini-logo {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: #60a5fa;
+    letter-spacing: -0.5px;
+  }
+
+  .exam-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+  .timer {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+  .timer.warn-time { color: var(--warn); }
+  .timer.danger-time { color: var(--danger); animation: pulse 1s infinite; }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .status-pill.ok    { background: rgba(16,185,129,0.15); color: var(--ok); border: 1px solid rgba(16,185,129,0.3); }
+  .status-pill.warn  { background: rgba(245,158,11,0.15); color: var(--warn); border: 1px solid rgba(245,158,11,0.3); }
+  .status-pill.danger{ background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); animation: pulse 1s infinite; }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .dot.blink { animation: blink 1s infinite; }
+
+  /* Main layout */
+  .exam-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 0;
+    flex: 1;
+    min-height: calc(100vh - 57px);
+  }
+
+  /* Left: exam content */
+  .exam-content {
+    padding: 32px;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .exam-paper {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .paper-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .paper-meta { display: flex; flex-direction: column; gap: 4px; }
+  .paper-title { font-size: 20px; font-weight: 700; }
+  .paper-sub { font-size: 13px; color: var(--muted); }
+
+  .q-block {
+    margin-bottom: 32px;
+  }
+
+  .q-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .q-text {
+    font-size: 15px;
+    line-height: 1.7;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .q-options { display: flex; flex-direction: column; gap: 8px; }
+
+  .q-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+  .q-option:hover { border-color: var(--accent); background: rgba(59,130,246,0.08); }
+  .q-option.selected { border-color: var(--accent); background: rgba(59,130,246,0.15); }
+
+  .opt-letter {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .q-option.selected .opt-letter {
+    background: var(--accent);
+    color: white;
+  }
+
+  .submit-exam-btn {
+    display: block;
+    margin: 32px auto 0;
+    padding: 14px 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: opacity 0.2s;
+  }
+  .submit-exam-btn:hover { opacity: 0.88; }
+
+  /* Right: monitoring panel */
+  .monitor-panel {
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  /* Camera view */
+  .cam-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  #camera-feed {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+    display: block;
+  }
+
+  #face-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform: scaleX(-1);
+  }
+
+  .cam-badge {
+    position: absolute;
+    bottom: 8px; left: 8px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: var(--mono);
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  /* Gaze indicator */
+  .gaze-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .gaze-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .gaze-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .gaze-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s, background 0.3s;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 3px;
+  }
+  .stat-val.ok { color: var(--ok); }
+  .stat-val.warn { color: var(--warn); }
+  .stat-val.danger { color: var(--danger); }
+
+  .stat-label { font-size: 10px; color: var(--muted); }
+
+  /* Log */
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .log-item {
+    display: flex;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .log-item.info  { background: rgba(59,130,246,0.1); border-left: 2px solid var(--accent); }
+  .log-item.warn  { background: rgba(245,158,11,0.1); border-left: 2px solid var(--warn); }
+  .log-item.danger{ background: rgba(239,68,68,0.1); border-left: 2px solid var(--danger); }
+  .log-item.ok    { background: rgba(16,185,129,0.1); border-left: 2px solid var(--ok); }
+
+  .log-time { color: var(--muted); font-family: var(--mono); flex-shrink: 0; font-size: 10px; padding-top: 1px; }
+
+  /* Voice indicator */
+  .voice-wave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 28px;
+  }
+  .wave-bar {
+    width: 4px;
+    background: var(--accent);
+    border-radius: 2px;
+    height: 4px;
+    transition: height 0.1s;
+  }
+  .wave-bar.active { animation: wave 0.6s ease-in-out infinite; }
+  .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+  .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+  .wave-bar:nth-child(5) { animation-delay: 0.15s; }
+
+  .voice-text {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    min-height: 32px;
+    line-height: 1.5;
+  }
+
+  /* ── OVERLAY STATES ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    text-align: center;
+    padding: 40px;
+  }
+  .overlay.active { display: flex; }
+
+  /* Warning overlay */
+  #warn-overlay {
+    background: rgba(245,158,11,0.08);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(245,158,11,0.4);
+  }
+
+  /* Pause overlay */
+  #pause-overlay {
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(20px);
+  }
+
+  /* AI Chat overlay */
+  #chat-overlay {
+    background: rgba(10,14,26,0.97);
+    backdrop-filter: blur(20px);
+  }
+
+  /* Terminated overlay */
+  #terminated-overlay {
+    background: rgba(10,14,26,0.98);
+  }
+
+  .overlay-icon {
+    font-size: 56px;
+    animation: shake 0.5s ease-in-out;
+  }
+
+  .overlay-title {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: var(--mono);
+  }
+  .overlay-title.warn { color: var(--warn); }
+  .overlay-title.danger { color: var(--danger); }
+  .overlay-title.ok { color: var(--ok); }
+
+  .overlay-sub {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 460px;
+    line-height: 1.7;
+  }
+
+  .overlay-btn {
+    padding: 14px 40px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: opacity 0.2s;
+  }
+  .overlay-btn:hover { opacity: 0.85; }
+  .overlay-btn.primary { background: var(--accent); color: white; }
+  .overlay-btn.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  .overlay-btn.danger-btn { background: var(--danger); color: white; }
+
+  /* AI Chat UI */
+  .chat-box {
+    width: 100%;
+    max-width: 560px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg3);
+  }
+
+  .ai-avatar {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .chat-title { font-weight: 600; font-size: 14px; }
+  .chat-sub { font-size: 11px; color: var(--muted); }
+
+  .chat-messages {
+    padding: 16px;
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .chat-msg {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .chat-msg.ai {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+
+  .chat-msg.user {
+    background: rgba(59,130,246,0.2);
+    border: 1px solid rgba(59,130,246,0.3);
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+
+  .chat-typing {
+    display: flex; gap: 4px; align-items: center; padding: 4px 0;
+  }
+  .typing-dot {
+    width: 6px; height: 6px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: blink 1s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg3);
+  }
+
+  .chat-input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--sans);
+    outline: none;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+
+  .chat-send {
+    padding: 10px 16px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+
+  /* Warn counter badges */
+  .warn-badges {
+    display: flex;
+    gap: 6px;
+  }
+
+  .warn-badge {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    transition: background 0.3s;
+  }
+  .warn-badge.used { background: var(--warn); color: #000; }
+  .warn-badge.critical { background: var(--danger); color: white; }
+
+  /* Animations */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  @keyframes wave {
+    0%, 100% { height: 4px; }
+    50% { height: 22px; }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+
+  @keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .slide-in { animation: slideIn 0.4s ease-out; }
+
+  /* Warning flash */
+  .warn-flash {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 900;
+    border: 4px solid transparent;
+    transition: border-color 0.3s;
+  }
+  .warn-flash.active-warn { border-color: var(--warn); animation: borderPulse 0.6s 3; }
+  .warn-flash.active-danger { border-color: var(--danger); animation: borderPulse 0.4s 5; }
+
+  @keyframes borderPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* Blurred when paused */
+  .exam-content.blurred { filter: blur(10px); pointer-events: none; }
+
+  /* Terminated screen */
+  .term-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    max-width: 480px;
+    margin: 8px 0;
+  }
+
+  .term-stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: left;
+  }
+  .term-stat-val { font-family: var(--mono); font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .term-stat-label { font-size: 12px; color: var(--muted); }
+
+  .no-api-note {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: -8px;
+    line-height: 1.5;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  select.input-field {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 1s linear;
+  }
+</style>
+</head>
+<body>
+
+<!-- Border flash effect -->
+<div class="warn-flash" id="warn-flash"></div>
+
+<!-- ════════════════════════════════════ SETUP SCREEN ════════════════════════════════════ -->
+<div id="setup-screen">
+  <div class="logo">
+    <div class="logo-icon">👁</div>
+    <h1>ProctorAI</h1>
+  </div>
+  <p class="tagline">AI 기반 지능형 시험 감독 시스템</p>
+
+  <div class="setup-card">
+    <div class="setup-section">
+      <div class="setup-label">시험 정보</div>
+      <input type="text" class="input-field" id="exam-name-input" placeholder="시험 이름 (예: 인공지능 개론 기말고사)" style="margin-bottom:8px">
+      <input type="text" class="input-field" id="student-name-input" placeholder="응시자 이름">
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">시험 시간</div>
+      <select class="input-field" id="duration-select">
+        <option value="600">10분</option>
+        <option value="1800" selected>30분</option>
+        <option value="3600">60분</option>
+        <option value="5400">90분</option>
+        <option value="7200">120분</option>
+      </select>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">감독 기능</div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">👁 시선 추적</div>
+          <div class="toggle-desc">카메라로 눈 이탈 감지 — MediaPipe Face Mesh</div>
+        </div>
+        <div class="toggle on" id="toggle-eye" onclick="toggleFeature('eye')"></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">🎙 음성 감지</div>
+          <div class="toggle-desc">실시간 STT로 의심 발언 탐지</div>
+        </div>
+        <div class="toggle on" id="toggle-voice" onclick="toggleFeature('voice')"></div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">🤖 AI 면담</div>
+          <div class="toggle-desc">일시정지 시 Claude AI 의심 행위 확인 면담</div>
+        </div>
+        <div class="toggle on" id="toggle-ai" onclick="toggleFeature('ai')"></div>
+      </div>
+    </div>
+
+    <div class="setup-section" id="api-section">
+      <div class="setup-label">Groq API Key <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(무료 · AI 면담 기능에 필요)</span></div>
+      <div class="api-row">
+        <input type="password" class="input-field" id="api-key-input" placeholder="gsk_...">
+      </div>
+      <div class="no-api-note" style="margin-top:8px">
+        🔑 <strong style="color:var(--text)">무료 발급:</strong> <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a> 에서 무료로 받을 수 있습니다.<br>
+        미입력 시 AI 면담은 시뮬레이션 모드로 동작합니다.
+      </div>
+    </div>
+
+    <button class="start-btn" onclick="startExam()">🚀 시험 시작</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ EXAM SCREEN ════════════════════════════════════ -->
+<div id="exam-screen">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="mini-logo">ProctorAI</div>
+      <div class="exam-title" id="topbar-title">시험 진행 중</div>
+    </div>
+    <div class="topbar-right">
+      <div class="warn-badges" id="warn-badges">
+        <div class="warn-badge" id="wb1">1</div>
+        <div class="warn-badge" id="wb2">2</div>
+        <div class="warn-badge" id="wb3">3</div>
+      </div>
+      <div class="status-pill ok" id="status-pill">
+        <div class="dot blink"></div>
+        <span id="status-text">정상 감독 중</span>
+      </div>
+      <div class="timer" id="timer">30:00</div>
+    </div>
+  </div>
+
+  <div class="exam-layout">
+    <!-- LEFT: Exam Paper -->
+    <div class="exam-content" id="exam-content">
+      <div class="exam-paper slide-in">
+        <div class="paper-header">
+          <div class="paper-meta">
+            <div class="paper-title" id="paper-title">인공지능 개론 기말고사</div>
+            <div class="paper-sub">총 5문항 · 각 20점 · 제한시간 <span id="paper-time">30</span>분</div>
+          </div>
+          <div style="font-size:13px;color:var(--muted);text-align:right">
+            <div id="paper-student" style="font-weight:600;color:var(--text)">홍길동</div>
+            <div>응시자</div>
+          </div>
+        </div>
+
+        <div class="q-block">
+          <div class="q-num">문제 01</div>
+          <div class="q-text">다음 중 지도학습(Supervised Learning)에 해당하지 않는 알고리즘은?</div>
+          <div class="q-options">
+            <div class="q-option" onclick="selectOpt(this,1,1)"><div class="opt-letter">A</div>선형 회귀(Linear Regression)</div>
+            <div class="q-option" onclick="selectOpt(this,1,2)"><div class="opt-letter">B</div>결정 트리(Decision Tree)</div>
+            <div class="q-option" onclick="selectOpt(this,1,3)"><div class="opt-letter">C</div>K-평균 군집화(K-Means Clustering)</div>
+            <div class="q-option" onclick="selectOpt(this,1,4)"><div class="opt-letter">D</div>서포트 벡터 머신(SVM)</div>
+          </div>
+        </div>
+
+        <div class="q-block">
+          <div class="q-num">문제 02</div>
+          <div class="q-text">딥러닝에서 과적합(Overfitting)을 방지하는 기법으로 적절하지 않은 것은?</div>
+          <div class="q-options">
+            <div class="q-option" onclick="selectOpt(this,2,1)"><div class="opt-letter">A</div>드롭아웃(Dropout)</div>
+            <div class="q-option" onclick="selectOpt(this,2,2)"><div class="opt-letter">B</div>L2 정규화(Regularization)</div>
+            <div class="q-option" onclick="selectOpt(this,2,3)"><div class="opt-letter">C</div>배치 크기를 무한히 증가</div>
+            <div class="q-option" onclick="selectOpt(this,2,4)"><div class="opt-letter">D</div>조기 종료(Early Stopping)</div>
+          </div>
+        </div>
+
+        <div class="q-block">
+          <div class="q-num">문제 03</div>
+          <div class="q-text">트랜스포머(Transformer) 모델의 핵심 메커니즘으로, 입력 시퀀스 내 각 토큰 간의 관계를 계산하는 것은?</div>
+          <div class="q-options">
+            <div class="q-option" onclick="selectOpt(this,3,1)"><div class="opt-letter">A</div>합성곱 연산(Convolution)</div>
+            <div class="q-option" onclick="selectOpt(this,3,2)"><div class="opt-letter">B</div>순환 신경망(RNN)</div>
+            <div class="q-option" onclick="selectOpt(this,3,3)"><div class="opt-letter">C</div>셀프 어텐션(Self-Attention)</div>
+            <div class="q-option" onclick="selectOpt(this,3,4)"><div class="opt-letter">D</div>풀링(Pooling)</div>
+          </div>
+        </div>
+
+        <div class="q-block">
+          <div class="q-num">문제 04</div>
+          <div class="q-text">강화학습(Reinforcement Learning)에서 에이전트가 최대화하려는 것은?</div>
+          <div class="q-options">
+            <div class="q-option" onclick="selectOpt(this,4,1)"><div class="opt-letter">A</div>손실 함수(Loss Function)</div>
+            <div class="q-option" onclick="selectOpt(this,4,2)"><div class="opt-letter">B</div>누적 보상(Cumulative Reward)</div>
+            <div class="q-option" onclick="selectOpt(this,4,3)"><div class="opt-letter">C</div>엔트로피(Entropy)</div>
+            <div class="q-option" onclick="selectOpt(this,4,4)"><div class="opt-letter">D</div>학습률(Learning Rate)</div>
+          </div>
+        </div>
+
+        <div class="q-block">
+          <div class="q-num">문제 05</div>
+          <div class="q-text">GAN(Generative Adversarial Network)에서 생성자(Generator)와 대립하는 역할을 수행하는 구성 요소는?</div>
+          <div class="q-options">
+            <div class="q-option" onclick="selectOpt(this,5,1)"><div class="opt-letter">A</div>판별자(Discriminator)</div>
+            <div class="q-option" onclick="selectOpt(this,5,2)"><div class="opt-letter">B</div>인코더(Encoder)</div>
+            <div class="q-option" onclick="selectOpt(this,5,3)"><div class="opt-letter">C</div>디코더(Decoder)</div>
+            <div class="q-option" onclick="selectOpt(this,5,4)"><div class="opt-letter">D</div>어텐션 헤드(Attention Head)</div>
+          </div>
+        </div>
+
+        <button class="submit-exam-btn" onclick="submitExam()">답안 제출 →</button>
+        <div style="height:40px"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Monitor Panel -->
+    <div class="monitor-panel">
+      <!-- Camera -->
+      <div class="panel-section">
+        <div class="panel-title">📷 실시간 감독 카메라</div>
+        <div class="cam-wrapper">
+          <video id="camera-feed" autoplay playsinline muted></video>
+          <canvas id="face-canvas"></canvas>
+          <div class="cam-badge">
+            <div class="dot blink" style="background:var(--ok)"></div>
+            <span id="cam-status">감지 중</span>
+          </div>
+        </div>
+        <div class="progress-bar" style="margin-top:8px">
+          <div class="progress-fill" id="gaze-progress" style="width:100%"></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center" id="gaze-label">시선 정상</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="panel-section">
+        <div class="panel-title">📊 감독 통계</div>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-val ok" id="stat-gaze">100%</div>
+            <div class="stat-label">시선 집중도</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val ok" id="stat-warnings">0회</div>
+            <div class="stat-label">경고 횟수</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="stat-away">0s</div>
+            <div class="stat-label">총 이탈 시간</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="stat-voice">0회</div>
+            <div class="stat-label">음성 감지</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voice -->
+      <div class="panel-section" id="voice-panel">
+        <div class="panel-title">🎙 음성 모니터링</div>
+        <div class="voice-wave" id="voice-wave">
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <span style="margin-left:8px;font-size:12px;color:var(--muted)" id="voice-status">대기 중...</span>
+        </div>
+        <div class="voice-text" id="voice-text">인식된 음성이 여기에 표시됩니다</div>
+      </div>
+
+      <!-- Event Log -->
+      <div class="panel-section" style="flex:1;overflow:hidden">
+        <div class="panel-title">📋 이벤트 로그</div>
+        <div class="log-list" id="log-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ OVERLAYS ════════════════════════ -->
+
+<!-- Warning Overlay (brief) -->
+<div class="overlay" id="warn-overlay">
+  <div class="overlay-icon">⚠️</div>
+  <div class="overlay-title warn" id="warn-title">시선 이탈 경고</div>
+  <div class="overlay-sub" id="warn-msg">화면을 벗어난 시선이 감지되었습니다. 즉시 화면을 주시해 주세요.</div>
+  <button class="overlay-btn primary" onclick="dismissWarning()">확인 — 계속 응시합니다</button>
+</div>
+
+<!-- Pause + AI Chat Overlay -->
+<div class="overlay" id="chat-overlay">
+  <div class="overlay-icon">🤖</div>
+  <div class="overlay-title warn">시험 일시정지 — AI 면담</div>
+  <div class="overlay-sub">의심 행위가 반복 감지되었습니다. AI 감독관과 면담 후 시험을 재개할 수 있습니다.</div>
+  <div class="chat-box">
+    <div class="chat-header">
+      <div class="ai-avatar">🛡</div>
+      <div>
+        <div class="chat-title">ProctorAI 감독관</div>
+        <div class="chat-sub">AI 면담 · 응답 필수</div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+      <input type="text" class="chat-input" id="chat-input" placeholder="답변을 입력하세요..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="chat-send" onclick="sendChat()">전송</button>
+    </div>
+  </div>
+  <button class="overlay-btn secondary" id="resume-btn" style="display:none" onclick="resumeFromChat()">✅ 면담 완료 — 시험 재개</button>
+</div>
+
+<!-- Terminated Overlay -->
+<div class="overlay" id="terminated-overlay">
+  <div class="overlay-icon">🚫</div>
+  <div class="overlay-title danger">시험 강제 종료</div>
+  <div class="overlay-sub">부정행위 의심 행위가 기준 횟수를 초과하여 시험이 강제 종료되었습니다.</div>
+  <div class="term-grid">
+    <div class="term-stat">
+      <div class="term-stat-val danger" id="term-warnings">0</div>
+      <div class="term-stat-label">총 경고 횟수</div>
+    </div>
+    <div class="term-stat">
+      <div class="term-stat-val warn" id="term-away">0s</div>
+      <div class="term-stat-label">총 이탈 시간</div>
+    </div>
+    <div class="term-stat">
+      <div class="term-stat-val" id="term-voice">0</div>
+      <div class="term-stat-label">음성 감지 횟수</div>
+    </div>
+    <div class="term-stat">
+      <div class="term-stat-val ok" id="term-time">00:00</div>
+      <div class="term-stat-label">응시 시간</div>
+    </div>
+  </div>
+  <button class="overlay-btn secondary" onclick="location.reload()">← 처음으로</button>
+</div>
+
+<!-- ════════════════════════ SCRIPTS ════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+<script>
+// ═══════════════ STATE ═══════════════
+const state = {
+  examName: '', studentName: '', duration: 1800,
+  apiKey: '',
+  features: { eye: true, voice: true, ai: true },
+
+  // Timer
+  timeLeft: 1800,
+  timerInterval: null,
+  examStartTime: null,
+
+  // Proctor
+  warningCount: 0,
+  maxWarnings: 3,
+  gazeAwayTime: 0,         // continuous away seconds
+  totalAwayTime: 0,
+  gazeAwayTimer: null,
+  isGazeAway: false,
+  gazeThreshold: 3,        // seconds before warning
+  voiceAlerts: 0,
+  examPaused: false,
+  examTerminated: false,
+
+  // Chat
+  chatHistory: [],
+  chatTurn: 0,
+  chatResumable: false,
+
+  // Face mesh
+  faceDetected: false,
+  noFaceTimer: null,
+  eyeLeft: null, eyeRight: null,
+
+  // Voice
+  recognition: null,
+  voiceActive: false,
+  suspiciousKeywords: ['답','정답','answer','solution','알려줘','뭐야','어떻게','맞아','맞지','번이','번이야','번인가','번 아니야']
+};
+
+// ═══════════════ SETUP ═══════════════
+function toggleFeature(f) {
+  state.features[f] = !state.features[f];
+  const el = document.getElementById('toggle-' + f);
+  el.classList.toggle('on', state.features[f]);
+  if (f === 'ai') document.getElementById('api-section').style.opacity = state.features[f] ? '1' : '0.4';
+}
+
+async function startExam() {
+  state.examName = document.getElementById('exam-name-input').value || '인공지능 개론 기말고사';
+  state.studentName = document.getElementById('student-name-input').value || '응시자';
+  state.duration = parseInt(document.getElementById('duration-select').value);
+  state.timeLeft = state.duration;
+  state.apiKey = document.getElementById('api-key-input').value.trim();
+  state.examStartTime = Date.now();
+
+  document.getElementById('paper-title').textContent = state.examName;
+  document.getElementById('topbar-title').textContent = state.examName;
+  document.getElementById('paper-student').textContent = state.studentName;
+  document.getElementById('paper-time').textContent = Math.round(state.duration / 60);
+
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('exam-screen').style.display = 'flex';
+
+  if (!state.features.voice) document.getElementById('voice-panel').style.display = 'none';
+
+  updateTimer();
+  state.timerInterval = setInterval(tick, 1000);
+
+  addLog('info', '시험 시작', `${state.examName} — ${state.studentName}`);
+
+  if (state.features.eye) await initCamera();
+  if (state.features.voice) initVoice();
+}
+
+// ═══════════════ TIMER ═══════════════
+function tick() {
+  if (state.examPaused || state.examTerminated) return;
+  state.timeLeft--;
+  updateTimer();
+  if (state.timeLeft <= 0) submitExam();
+}
+
+function updateTimer() {
+  const m = Math.floor(state.timeLeft / 60);
+  const s = state.timeLeft % 60;
+  const el = document.getElementById('timer');
+  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.className = 'timer' + (state.timeLeft < 120 ? ' danger-time' : state.timeLeft < 300 ? ' warn-time' : '');
+}
+
+// ═══════════════ CAMERA / EYE TRACKING ═══════════════
+async function initCamera() {
+  try {
+    const video = document.getElementById('camera-feed');
+    const canvas = document.getElementById('face-canvas');
+    const ctx = canvas.getContext('2d');
+
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } });
+    video.srcObject = stream;
+
+    video.addEventListener('loadedmetadata', () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    });
+
+    // Try MediaPipe
+    if (typeof FaceMesh !== 'undefined') {
+      const faceMesh = new FaceMesh({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}` });
+      faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+      faceMesh.onResults((results) => processLandmarks(results, ctx, canvas));
+
+      const camera = new Camera(video, {
+        onFrame: async () => { await faceMesh.send({ image: video }); },
+        width: 640, height: 480
+      });
+      camera.start();
+      addLog('ok', 'MediaPipe', '얼굴 추적 초기화 완료');
+    } else {
+      fallbackEyeTracking(video, canvas, ctx);
+    }
+  } catch (e) {
+    addLog('warn', '카메라 오류', e.message || '카메라 접근 실패');
+    document.getElementById('cam-status').textContent = '카메라 없음';
+    simulateEyeTracking();
+  }
+}
+
+function processLandmarks(results, ctx, canvas) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+    handleNoFace();
+    return;
+  }
+  handleFaceDetected();
+
+  const lm = results.multiFaceLandmarks[0];
+
+  // Eye landmarks: left eye center ~473, right eye center ~468
+  // Iris landmarks for gaze: left 468-472, right 473-477
+  const leftEye = lm[468];
+  const rightEye = lm[473];
+
+  // Simple gaze check: compare iris horizontal position relative to eye corners
+  const leftInner = lm[362], leftOuter = lm[263];
+  const rightInner = lm[133], rightOuter = lm[33];
+
+  const leftGaze = (leftEye.x - leftInner.x) / (leftOuter.x - leftInner.x);
+  const rightGaze = (rightEye.x - rightInner.x) / (rightOuter.x - rightInner.x);
+  const avgGaze = (leftGaze + rightGaze) / 2;
+
+  // Vertical gaze: compare y
+  const leftEyeTop = lm[386], leftEyeBot = lm[374];
+  const leftV = (leftEye.y - leftEyeTop.y) / (leftEyeBot.y - leftEyeTop.y);
+
+  // Gaze away if iris near edges horizontally or very up/down
+  const gazeAway = avgGaze < 0.25 || avgGaze > 0.75 || leftV < 0.2 || leftV > 0.8;
+
+  updateGazeState(gazeAway, avgGaze);
+
+  // Draw subtle eye markers
+  const w = canvas.width, h = canvas.height;
+  ctx.save();
+  ctx.fillStyle = gazeAway ? 'rgba(239,68,68,0.8)' : 'rgba(16,185,129,0.8)';
+  [[leftEye.x, leftEye.y], [rightEye.x, rightEye.y]].forEach(([x, y]) => {
+    ctx.beginPath();
+    ctx.arc(x * w, y * h, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Draw eye outline
+  const eyePoints = [[362,385,387,263,373,380], [33,160,158,133,153,144]];
+  eyePoints.forEach(pts => {
+    ctx.beginPath();
+    pts.forEach((i, idx) => {
+      const p = lm[i];
+      idx === 0 ? ctx.moveTo(p.x*w, p.y*h) : ctx.lineTo(p.x*w, p.y*h);
+    });
+    ctx.closePath();
+    ctx.strokeStyle = gazeAway ? 'rgba(239,68,68,0.5)' : 'rgba(16,185,129,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function fallbackEyeTracking(video, canvas, ctx) {
+  // Simple face detection using canvas pixel analysis
+  addLog('info', '추적 모드', '간소화 추적 모드 활성화');
+  simulateEyeTracking();
+}
+
+function simulateEyeTracking() {
+  // Simulation mode — random gaze for demo
+  let simInterval = setInterval(() => {
+    if (state.examTerminated) { clearInterval(simInterval); return; }
+    if (state.examPaused) return;
+    const away = Math.random() < 0.12;
+    updateGazeState(away, Math.random());
+    state.faceDetected = true;
+  }, 500);
+  addLog('info', '시뮬레이션', '데모 모드: 카메라 없이 추적 시뮬레이션');
+}
+
+function handleNoFace() {
+  if (!state.faceDetected) return;
+  state.faceDetected = false;
+  document.getElementById('cam-status').textContent = '얼굴 미감지';
+  updateGazeState(true, 0);
+}
+
+function handleFaceDetected() {
+  if (!state.faceDetected) {
+    state.faceDetected = true;
+    document.getElementById('cam-status').textContent = '감지 중';
+  }
+}
+
+function updateGazeState(isAway, gazeVal) {
+  if (state.examPaused || state.examTerminated) return;
+
+  const pct = Math.max(0, Math.min(100, isAway ? 20 : 70 + gazeVal * 30));
+  const bar = document.getElementById('gaze-progress');
+  bar.style.width = pct + '%';
+  bar.style.background = isAway ? '#ef4444' : (pct > 70 ? '#10b981' : '#f59e0b');
+  document.getElementById('gaze-label').textContent = isAway ? '⚠ 시선 이탈' : '시선 정상';
+
+  // Focus stat
+  const focusEl = document.getElementById('stat-gaze');
+  focusEl.textContent = Math.round(pct) + '%';
+  focusEl.className = 'stat-val ' + (pct > 70 ? 'ok' : pct > 40 ? '' : 'danger');
+
+  if (isAway && !state.isGazeAway) {
+    state.isGazeAway = true;
+    state.gazeAwayTime = 0;
+    state.gazeAwayTimer = setInterval(() => {
+      if (!state.isGazeAway || state.examPaused || state.examTerminated) {
+        clearInterval(state.gazeAwayTimer);
+        return;
+      }
+      state.gazeAwayTime++;
+      state.totalAwayTime++;
+      document.getElementById('stat-away').textContent = state.totalAwayTime + 's';
+
+      if (state.gazeAwayTime >= state.gazeThreshold) {
+        triggerGazeWarning();
+        clearInterval(state.gazeAwayTimer);
+      }
+    }, 1000);
+  } else if (!isAway && state.isGazeAway) {
+    state.isGazeAway = false;
+    state.gazeAwayTime = 0;
+    clearInterval(state.gazeAwayTimer);
+  }
+}
+
+function triggerGazeWarning() {
+  state.warningCount++;
+  updateWarningBadges();
+  addLog('warn', '시선 이탈', `${state.gazeThreshold}초 이상 화면 이탈 (${state.warningCount}/${state.maxWarnings}회)`);
+
+  const stat = document.getElementById('stat-warnings');
+  stat.textContent = state.warningCount + '회';
+  stat.className = 'stat-val ' + (state.warningCount >= state.maxWarnings - 1 ? 'danger' : 'warn');
+
+  if (state.warningCount >= state.maxWarnings) {
+    triggerAIChat('gaze');
+  } else {
+    showWarning('시선 이탈 감지', `화면을 ${state.gazeThreshold}초 이상 이탈했습니다. 경고 ${state.warningCount}/${state.maxWarnings}회`);
+    flashBorder('warn');
+  }
+}
+
+// ═══════════════ VOICE ═══════════════
+function initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    addLog('warn', '음성', '브라우저가 음성 인식을 지원하지 않습니다');
+    return;
+  }
+  state.recognition = new SR();
+  state.recognition.lang = 'ko-KR';
+  state.recognition.continuous = true;
+  state.recognition.interimResults = true;
+  state.recognition.maxAlternatives = 1;
+
+  state.recognition.onstart = () => {
+    state.voiceActive = true;
+    document.getElementById('voice-status').textContent = '감지 중';
+    document.querySelectorAll('.wave-bar').forEach(b => b.classList.add('active'));
+    addLog('ok', '음성 감지', '마이크 활성화');
+  };
+
+  state.recognition.onresult = (e) => {
+    if (state.examPaused || state.examTerminated) return;
+    let transcript = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    if (!transcript.trim()) return;
+
+    document.getElementById('voice-text').textContent = `"${transcript}"`;
+
+    const lower = transcript.toLowerCase();
+    const hit = state.suspiciousKeywords.some(kw => lower.includes(kw));
+    if (hit) {
+      state.voiceAlerts++;
+      const vs = document.getElementById('stat-voice');
+      vs.textContent = state.voiceAlerts + '회';
+      vs.className = 'stat-val ' + (state.voiceAlerts >= 3 ? 'danger' : 'warn');
+      addLog('danger', '음성 경고', `의심 발언 감지: "${transcript.substring(0,30)}"`);
+      state.warningCount++;
+      updateWarningBadges();
+      if (state.warningCount >= state.maxWarnings) {
+        triggerAIChat('voice');
+      } else {
+        showWarning('의심 발언 감지', `"${transcript.substring(0,30)}" — 시험 관련 발언이 감지되었습니다`);
+        flashBorder('danger');
+      }
+    }
+  };
+
+  state.recognition.onerror = (e) => {
+    if (e.error !== 'no-speech') addLog('warn', '음성 오류', e.error);
+  };
+
+  state.recognition.onend = () => {
+    if (!state.examPaused && !state.examTerminated && state.features.voice) {
+      setTimeout(() => { try { state.recognition.start(); } catch(_) {} }, 500);
+    }
+  };
+
+  try { state.recognition.start(); } catch(_) {}
+}
+
+// ═══════════════ WARNING SYSTEM ═══════════════
+function showWarning(title, msg) {
+  if (state.examPaused || state.examTerminated) return;
+  document.getElementById('warn-title').textContent = title;
+  document.getElementById('warn-msg').textContent = msg;
+  const ov = document.getElementById('warn-overlay');
+  ov.classList.add('active');
+  state.examPaused = true;
+  document.getElementById('exam-content').classList.add('blurred');
+  setStatus('warn', `경고 ${state.warningCount}/${state.maxWarnings}`);
+
+  // Auto-dismiss after 8s
+  setTimeout(() => { if (document.getElementById('warn-overlay').classList.contains('active')) dismissWarning(); }, 8000);
+}
+
+function dismissWarning() {
+  document.getElementById('warn-overlay').classList.remove('active');
+  state.examPaused = false;
+  document.getElementById('exam-content').classList.remove('blurred');
+  setStatus('ok', '정상 감독 중');
+  addLog('info', '경고 확인', '응시자 확인 완료, 재개');
+}
+
+function flashBorder(type) {
+  const el = document.getElementById('warn-flash');
+  el.className = 'warn-flash active-' + type;
+  setTimeout(() => { el.className = 'warn-flash'; }, 2000);
+}
+
+function updateWarningBadges() {
+  for (let i = 1; i <= 3; i++) {
+    const b = document.getElementById('wb' + i);
+    if (i <= state.warningCount) {
+      b.classList.add(i === state.maxWarnings ? 'critical' : 'used');
+    }
+  }
+}
+
+// ═══════════════ AI CHAT ═══════════════
+async function triggerAIChat(reason) {
+  if (state.examPaused || state.examTerminated) return;
+  state.examPaused = true;
+  document.getElementById('exam-content').classList.add('blurred');
+  document.getElementById('warn-overlay').classList.remove('active');
+
+  if (state.recognition) { try { state.recognition.stop(); } catch(_) {} }
+
+  const reasons = {
+    gaze: '응시자의 시선이 반복적으로 모니터를 이탈하였습니다',
+    voice: '시험 관련 의심 발언이 반복 감지되었습니다'
+  };
+
+  state.chatHistory = [];
+  document.getElementById('chat-messages').innerHTML = '';
+  document.getElementById('resume-btn').style.display = 'none';
+  state.chatTurn = 0;
+  state.chatResumable = false;
+
+  document.getElementById('chat-overlay').classList.add('active');
+  setStatus('danger', 'AI 면담 중');
+
+  const initMsg = `안녕하세요, ${state.studentName}님. 저는 ProctorAI 감독 시스템입니다.\n\n${reasons[reason]}. 시험 공정성을 위해 간단한 확인이 필요합니다.\n\n현재 시험 외 다른 자료나 도움을 받고 있습니까?`;
+
+  await typeMessage('ai', initMsg);
+  state.chatHistory.push({ role: 'assistant', content: initMsg });
+  state.chatTurn = 1;
+
+  addLog('danger', 'AI 면담 시작', reasons[reason]);
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  await typeMessage('user', text);
+  state.chatHistory.push({ role: 'user', content: text });
+
+  const context = { turn: state.chatTurn, studentName: state.studentName, examName: state.examName, chatHistory: state.chatHistory };
+
+  const aiReply = await getAIResponse(context);
+  await typeMessage('ai', aiReply);
+  state.chatHistory.push({ role: 'assistant', content: aiReply });
+  state.chatTurn++;
+
+  if (state.chatTurn >= 3) {
+    state.chatResumable = true;
+    document.getElementById('resume-btn').style.display = 'inline-flex';
+    addLog('info', 'AI 면담', '면담 완료 — 재개 가능');
+  }
+}
+
+async function getAIResponse(ctx) {
+  const systemPrompt = `당신은 온라인 시험 감독 AI입니다. 응시자 ${ctx.studentName}이 의심 행위로 면담 중입니다. 시험명: ${ctx.examName}.
+당신의 역할: 1) 응시자가 실제로 부정행위를 했는지 공정하게 판단, 2) 2-3번의 질문으로 상황 파악, 3) 납득할만한 해명 시 재개 허용.
+답변은 2-3문장으로 간결하게. 마지막 turn이면 "면담을 종료하겠습니다"로 마무리. 한국어로만 답변.`;
+
+  if (state.apiKey) {
+    try {
+      // Groq API — OpenAI 호환 형식, CORS 허용, 무료 티어 제공
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...ctx.chatHistory
+      ];
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${state.apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          max_tokens: 300,
+          temperature: 0.7,
+          messages
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.choices[0].message.content.trim();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.warn('Groq API 오류:', err);
+      }
+    } catch (e) {
+      console.warn('Groq 호출 실패, 시뮬레이션 전환:', e);
+    }
+  }
+
+  // Simulation (API 키 없을 때 또는 호출 실패 시)
+  const sims = [
+    `안녕하세요, ${ctx.studentName}님. 시스템에서 의심 행위가 감지되었습니다. 현재 시험 외 다른 자료나 도움을 받고 있습니까?`,
+    `말씀 감사합니다. 앞으로 화면에 집중해주시면 정상 진행됩니다. 추가 위반 시 시험이 자동 종료됩니다. 이해하셨나요?`,
+    `확인되었습니다. 면담을 종료하겠습니다. 남은 시간 동안 최선을 다해 응시해 주세요.`
+  ];
+  return sims[Math.min(ctx.turn - 1, sims.length - 1)];
+}
+
+function typeMessage(role, text) {
+  return new Promise(resolve => {
+    const msgs = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + role;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    if (role === 'ai') {
+      // Typing indicator
+      const typing = document.createElement('div');
+      typing.className = 'chat-typing';
+      typing.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+      div.appendChild(typing);
+      msgs.scrollTop = msgs.scrollHeight;
+
+      setTimeout(() => {
+        div.innerHTML = text.replace(/\n/g, '<br>');
+        msgs.scrollTop = msgs.scrollHeight;
+        resolve();
+      }, 1000 + Math.random() * 800);
+    } else {
+      div.textContent = text;
+      msgs.scrollTop = msgs.scrollHeight;
+      resolve();
+    }
+  });
+}
+
+function resumeFromChat() {
+  document.getElementById('chat-overlay').classList.remove('active');
+  state.examPaused = false;
+  state.warningCount = 0;
+  for (let i = 1; i <= 3; i++) {
+    const b = document.getElementById('wb' + i);
+    b.classList.remove('used', 'critical');
+  }
+  document.getElementById('exam-content').classList.remove('blurred');
+  setStatus('ok', '정상 감독 중');
+  addLog('ok', '시험 재개', 'AI 면담 완료 후 재개');
+  if (state.recognition && state.features.voice) {
+    try { state.recognition.start(); } catch(_) {}
+  }
+}
+
+// ═══════════════ TERMINATE ═══════════════
+function terminateExam(reason) {
+  state.examTerminated = true;
+  state.examPaused = true;
+  clearInterval(state.timerInterval);
+  if (state.recognition) { try { state.recognition.stop(); } catch(_) {} }
+
+  document.getElementById('chat-overlay').classList.remove('active');
+  document.getElementById('warn-overlay').classList.remove('active');
+
+  const elapsed = Math.round((Date.now() - state.examStartTime) / 1000);
+  const em = Math.floor(elapsed / 60), es = elapsed % 60;
+
+  document.getElementById('term-warnings').textContent = state.warningCount;
+  document.getElementById('term-away').textContent = state.totalAwayTime + 's';
+  document.getElementById('term-voice').textContent = state.voiceAlerts;
+  document.getElementById('term-time').textContent = `${String(em).padStart(2,'0')}:${String(es).padStart(2,'0')}`;
+
+  document.getElementById('terminated-overlay').classList.add('active');
+  addLog('danger', '시험 강제 종료', reason);
+}
+
+// ═══════════════ SUBMIT ═══════════════
+function submitExam() {
+  clearInterval(state.timerInterval);
+  if (state.recognition) { try { state.recognition.stop(); } catch(_) {} }
+  state.examTerminated = true;
+
+  document.getElementById('terminated-overlay').querySelector('.overlay-title').textContent = '시험 제출 완료';
+  document.getElementById('terminated-overlay').querySelector('.overlay-title').className = 'overlay-title ok';
+  document.getElementById('terminated-overlay').querySelector('.overlay-icon').textContent = '✅';
+  document.getElementById('terminated-overlay').querySelector('.overlay-sub').textContent = '답안이 성공적으로 제출되었습니다. 수고하셨습니다!';
+
+  const elapsed = Math.round((Date.now() - state.examStartTime) / 1000);
+  const em = Math.floor(elapsed / 60), es = elapsed % 60;
+  document.getElementById('term-warnings').textContent = state.warningCount;
+  document.getElementById('term-away').textContent = state.totalAwayTime + 's';
+  document.getElementById('term-voice').textContent = state.voiceAlerts;
+  document.getElementById('term-time').textContent = `${String(em).padStart(2,'0')}:${String(es).padStart(2,'0')}`;
+
+  document.getElementById('terminated-overlay').classList.add('active');
+  addLog('ok', '제출 완료', '시험 종료 및 답안 제출');
+}
+
+// ═══════════════ UI HELPERS ═══════════════
+function setStatus(type, text) {
+  const el = document.getElementById('status-pill');
+  el.className = 'status-pill ' + type;
+  document.getElementById('status-text').textContent = text;
+}
+
+function addLog(type, event, detail) {
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const list = document.getElementById('log-list');
+  const item = document.createElement('div');
+  item.className = 'log-item ' + type;
+  item.innerHTML = `<span class="log-time">${time}</span><span><strong>${event}</strong> — ${detail}</span>`;
+  list.insertBefore(item, list.firstChild);
+  if (list.children.length > 30) list.removeChild(list.lastChild);
+}
+
+function selectOpt(el, q, opt) {
+  document.querySelectorAll(`.q-block:nth-child(${q+1}) .q-option`).forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+</script>
+</body>
+</html>
