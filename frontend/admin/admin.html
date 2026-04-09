@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProctorAI — 관리자</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+:root{
+  --bg:#08090f;--bg2:#0d1017;--bg3:#121620;--panel:#161c28;
+  --border:#1e2a3d;--accent:#4f8ef7;--accent2:#7c6ff7;
+  --ok:#22c55e;--warn:#f59e0b;--danger:#ef4444;
+  --text:#dde3f0;--muted:#5a6a82;
+  --mono:'Space Mono',monospace;--sans:'Noto Sans KR',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+.sidebar{width:200px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;height:100vh;position:sticky;top:0;}
+.sb-brand{padding:0 16px 20px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.sb-brand-name{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;}
+.sb-brand-role{font-size:10px;color:var(--muted);margin-top:2px;}
+.sb-nav{display:flex;flex-direction:column;gap:2px;padding:0 8px;}
+.sb-btn{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);border:none;background:none;width:100%;text-align:left;transition:all .15s;}
+.sb-btn:hover{background:var(--bg3);color:var(--text);}
+.sb-btn.on{background:rgba(79,142,247,.12);color:var(--accent);}
+.sb-btn .ico{width:18px;text-align:center;font-size:14px;}
+.sb-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;display:none;}
+.sb-badge.show{display:block;}
+.sb-footer{margin-top:auto;padding:14px 10px 0;border-top:1px solid var(--border);}
+.admin-chip{padding:10px 12px;background:var(--bg3);border-radius:8px;}
+.admin-chip-name{font-size:13px;font-weight:600;}
+.admin-chip-sub{font-size:10px;color:var(--muted);}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.topbar-crumb{font-size:13px;color:var(--muted);}
+.topbar-r{display:flex;align-items:center;gap:10px;}
+.live-chip{display:none;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ok);}
+.live-chip.show{display:flex;}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.blink{animation:blink 1s infinite;}
+.content{flex:1;overflow-y:auto;}
+.page{display:none;padding:28px;}
+.page.on{display:block;}
+.ph{margin-bottom:22px;}
+.ph-title{font-size:20px;font-weight:700;}
+.ph-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.stat-n{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1;margin-bottom:4px;}
+.stat-n.a{color:var(--accent)}.stat-n.g{color:var(--ok)}.stat-n.w{color:var(--warn)}.stat-n.d{color:var(--danger)}
+.stat-l{font-size:11px;color:var(--muted);}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px;}
+.card-t{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+.lbl{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+.inp{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:10px 13px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;transition:border .2s;margin-bottom:14px;}
+.inp:focus{border-color:var(--accent);}
+select.inp{appearance:none;cursor:pointer;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.upload{border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3);}
+.upload:hover,.upload.drag{border-color:var(--accent);background:rgba(79,142,247,.05);}
+.upload-ico{font-size:32px;margin-bottom:10px;}
+.upload-t{font-size:14px;font-weight:600;margin-bottom:3px;}
+.upload-s{font-size:12px;color:var(--muted);}
+.pdf-chip{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-top:10px;}
+.pdf-chip-info{flex:1;}
+.pdf-chip-name{font-size:13px;font-weight:600;}
+.pdf-chip-size{font-size:11px;color:var(--muted);}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:opacity .18s,transform .1s;}
+.btn:hover{opacity:.86;transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.btn-p{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+.btn-g{background:var(--ok);color:#fff;}
+.btn-ghost{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.btn-sm{padding:7px 13px;font-size:12px;}
+.prog-wrap{margin:14px 0;}
+.prog-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;}
+.prog-bg{width:100%;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .4s;}
+.q-list{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+.q-item{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:14px;}
+.q-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:9px;}
+.q-badge{background:rgba(79,142,247,.18);color:var(--accent);font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;flex-shrink:0;}
+.q-txt{font-size:13px;font-weight:500;line-height:1.55;flex:1;}
+.q-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.q-opt{font-size:12px;padding:6px 10px;background:var(--panel);border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;gap:6px;}
+.q-opt.ans{border-color:var(--ok);color:var(--ok);}
+.opt-l{width:18px;height:18px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.q-opt.ans .opt-l{background:var(--ok);color:#fff;}
+.q-exp{font-size:11px;color:var(--muted);margin-top:8px;padding:7px;background:rgba(34,197,94,.07);border-radius:6px;line-height:1.5;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{text-align:left;padding:9px 13px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.tbl td{padding:11px 13px;font-size:12px;border-bottom:1px solid rgba(30,42,61,.5);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;}
+.bg{background:rgba(34,197,94,.13);color:var(--ok);border:1px solid rgba(34,197,94,.25);}
+.bb{background:rgba(79,142,247,.13);color:var(--accent);border:1px solid rgba(79,142,247,.25);}
+.bw{background:rgba(245,158,11,.13);color:var(--warn);border:1px solid rgba(245,158,11,.25);}
+.br{background:rgba(239,68,68,.13);color:var(--danger);border:1px solid rgba(239,68,68,.25);}
+.bm{background:rgba(90,106,130,.13);color:var(--muted);border:1px solid rgba(90,106,130,.25);}
+.log-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.log-head{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid var(--border);}
+.log-body{max-height:460px;overflow-y:auto;}
+.log-row{display:grid;grid-template-columns:72px 110px 1fr 65px;gap:10px;padding:9px 15px;font-size:12px;border-bottom:1px solid rgba(30,42,61,.4);align-items:center;}
+.log-row:last-child{border-bottom:none;}
+.log-row.rd{background:rgba(239,68,68,.05);}
+.log-row.rw{background:rgba(245,158,11,.05);}
+.log-time{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.log-stu{font-weight:600;}
+.sev{padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;text-align:center;}
+.sv-ok{background:rgba(34,197,94,.13);color:var(--ok);}
+.sv-info{background:rgba(79,142,247,.13);color:var(--accent);}
+.sv-warn{background:rgba(245,158,11,.13);color:var(--warn);}
+.sv-danger{background:rgba(239,68,68,.13);color:var(--danger);}
+.stu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:12px;}
+.stu-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;transition:border-color .2s;}
+.stu-card.wc{border-color:var(--warn);}
+.stu-card.dc{border-color:var(--danger);animation:bp 2s infinite;}
+.stu-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.stu-name{font-weight:700;font-size:13px;}
+.stu-id{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.mini-bar{width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:5px;}
+.mini-fill{height:100%;border-radius:2px;transition:width .5s;}
+.fb-note{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.22);border-radius:10px;padding:14px;margin-bottom:16px;}
+.fb-note-t{font-size:12px;font-weight:700;color:var(--warn);margin-bottom:6px;}
+.fb-note-b{font-size:11px;color:var(--muted);line-height:1.7;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes bp{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.fi{animation:fi .3s ease-out;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-brand-name">PROCTOR<span style="color:var(--accent2)">AI</span></div>
+    <div class="sb-brand-role">관리자 대시보드</div>
+  </div>
+  <nav class="sb-nav">
+    <button class="sb-btn on" onclick="nav('dashboard',this)"><span class="ico">📊</span>대시보드</button>
+    <button class="sb-btn" onclick="nav('create',this)"><span class="ico">📝</span>시험 생성</button>
+    <button class="sb-btn" onclick="nav('exams',this)"><span class="ico">📋</span>시험 목록</button>
+    <button class="sb-btn" onclick="nav('monitor',this)"><span class="ico">👁</span>실시간 감독<span class="sb-badge" id="alert-badge">!</span></button>
+    <button class="sb-btn" onclick="nav('logs',this)"><span class="ico">📄</span>전체 로그</button>
+    <button class="sb-btn" onclick="nav('settings',this)"><span class="ico">⚙️</span>설정</button>
+  </nav>
+  <div class="sb-footer">
+    <div class="admin-chip">
+      <div class="admin-chip-name" id="admin-name-disp">관리자</div>
+      <div class="admin-chip-sub">시험 감독관</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-crumb" id="crumb">대시보드</div>
+    <div class="topbar-r">
+      <div class="live-chip" id="live-chip"><div class="dot blink"></div>LIVE 감독 중</div>
+      <button class="btn btn-ghost btn-sm" onclick="window.open('exam.html','_blank')">응시자 페이지 →</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page on" id="page-dashboard">
+      <div class="ph"><div class="ph-title">대시보드</div><div class="ph-sub">ProctorAI 시스템 현황</div></div>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-n a" id="d-exams">0</div><div class="stat-l">등록 시험</div></div>
+        <div class="stat"><div class="stat-n g" id="d-active">0</div><div class="stat-l">진행 중</div></div>
+        <div class="stat"><div class="stat-n w" id="d-warns">0</div><div class="stat-l">오늘 경고</div></div>
+        <div class="stat"><div class="stat-n d" id="d-term">0</div><div class="stat-l">강제 종료</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+        <div class="card"><div class="card-t">최근 이벤트</div><div id="d-loglist"><div style="font-size:12px;color:var(--muted)">이벤트 없음</div></div></div>
+        <div class="card"><div class="card-t">등록 시험</div><div id="d-examlist"><div style="font-size:12px;color:var(--muted)">시험을 먼저 생성하세요</div></div></div>
+      </div>
+    </div>
+
+    <!-- CREATE -->
+    <div class="page" id="page-create">
+      <div class="ph"><div class="ph-title">시험 생성</div><div class="ph-sub">PDF 업로드 → AI가 자동으로 문제 생성</div></div>
+      <div class="card">
+        <div class="card-t">① 시험 기본 정보</div>
+        <div class="row2">
+          <div><label class="lbl">시험 이름</label><input type="text" class="inp" id="n-name" placeholder="예: 인공지능 개론 중간고사"></div>
+          <div><label class="lbl">제한 시간</label><select class="inp" id="n-dur"><option value="600">10분</option><option value="1800" selected>30분</option><option value="3600">60분</option><option value="5400">90분</option></select></div>
+        </div>
+        <div class="row2">
+          <div><label class="lbl">생성 문항 수</label><select class="inp" id="n-qcnt"><option value="5">5문항</option><option value="10" selected>10문항</option><option value="15">15문항</option><option value="20">20문항</option></select></div>
+          <div><label class="lbl">난이도</label><select class="inp" id="n-diff"><option value="쉬움">쉬움</option><option value="보통" selected>보통</option><option value="어려움">어려움</option></select></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-t">② PDF 업로드</div>
+        <div class="upload" id="upload-zone" onclick="document.getElementById('pdf-inp').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+          <div class="upload-ico">📄</div>
+          <div class="upload-t">PDF를 드래그하거나 클릭하여 업로드</div>
+          <div class="upload-s">시험지 또는 강의자료 PDF · 최대 20MB</div>
+        </div>
+        <input type="file" id="pdf-inp" accept=".pdf" style="display:none" onchange="handleFile(event)">
+        <div id="pdf-chip" style="display:none" class="pdf-chip">
+          <span style="font-size:22px">📄</span>
+          <div class="pdf-chip-info"><div class="pdf-chip-name" id="pdf-name"></div><div class="pdf-chip-size" id="pdf-size"></div></div>
+          <button class="btn btn-ghost btn-sm" onclick="clearPdf()">✕</button>
+        </div>
+        <div id="pdf-preview" style="display:none;margin-top:12px;">
+          <div class="lbl" style="margin-bottom:5px">추출 텍스트 미리보기</div>
+          <div id="pdf-prev-text" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px;max-height:110px;overflow-y:auto;font-size:11px;line-height:1.6;color:var(--muted)"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-t">③ AI 문제 생성 (Groq · llama3 · 무료)</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-p" id="gen-btn" onclick="generateQs()" disabled>🤖 AI 문제 생성</button>
+          <span style="font-size:12px;color:var(--muted)" id="gen-status">PDF를 먼저 업로드하세요</span>
+        </div>
+        <div class="prog-wrap" id="gen-prog" style="display:none">
+          <div class="prog-labels"><span id="gen-step">준비 중...</span><span id="gen-pct">0%</span></div>
+          <div class="prog-bg"><div class="prog-fill" id="gen-bar" style="width:0"></div></div>
+        </div>
+        <div class="q-list" id="q-preview"></div>
+        <div id="save-sec" style="display:none;margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-g" onclick="saveExam()">✅ 시험 등록</button>
+            <button class="btn btn-ghost" onclick="generateQs()">🔄 재생성</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXAMS -->
+    <div class="page" id="page-exams">
+      <div class="ph"><div class="ph-title">시험 목록</div><div class="ph-sub">등록된 시험 관리</div></div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr><th>시험명</th><th>문항</th><th>시간</th><th>응시자</th><th>상태</th><th>작업</th></tr></thead>
+          <tbody id="exam-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">등록된 시험 없음</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MONITOR -->
+    <div class="page" id="page-monitor">
+      <div class="ph"><div class="ph-title">실시간 감독</div><div class="ph-sub">현재 응시 중인 학생 현황</div></div>
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;margin-bottom:16px;">
+        <div><div style="font-size:13px;font-weight:600">진행 중인 시험</div><div style="font-size:12px;color:var(--muted)" id="mon-exam">활성 시험 없음</div></div>
+        <div class="live-chip" id="mon-live"><div class="dot blink"></div>LIVE</div>
+      </div>
+      <div class="stu-grid" id="stu-grid"><div style="font-size:12px;color:var(--muted)">응시 중인 학생 없음</div></div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="page" id="page-logs">
+      <div class="ph"><div class="ph-title">전체 로그</div><div class="ph-sub">모든 응시자의 감독 이벤트</div></div>
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <select class="inp" style="width:auto;min-width:150px;margin:0" id="lf-exam" onchange="renderLogs()"><option value="">전체 시험</option></select>
+        <select class="inp" style="width:auto;min-width:120px;margin:0" id="lf-sev" onchange="renderLogs()">
+          <option value="">전체 등급</option><option value="danger">위험</option><option value="warn">경고</option><option value="info">정보</option><option value="ok">정상</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="exportCsv()">📥 CSV 내보내기</button>
+      </div>
+      <div class="log-wrap">
+        <div class="log-head">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">이벤트 로그</div>
+          <div style="font-size:11px;color:var(--muted)" id="log-cnt">0건</div>
+        </div>
+        <div class="log-body">
+          <div class="log-row" style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.5px;border-bottom:1px solid var(--border);">
+            <div>시각</div><div>응시자</div><div>이벤트</div><div>등급</div>
+          </div>
+          <div id="log-tbody"><div style="padding:22px;text-align:center;font-size:12px;color:var(--muted)">로그 없음</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="ph"><div class="ph-title">설정</div><div class="ph-sub">API · Firebase · 감독 기준</div></div>
+      <div class="card">
+        <div class="card-t">관리자 정보</div>
+        <label class="lbl">관리자 이름</label>
+        <input type="text" class="inp" id="set-admin" placeholder="홍길동 교수">
+        <button class="btn btn-ghost btn-sm" onclick="saveAdmin()">저장</button>
+      </div>
+      <div class="card">
+        <div class="card-t">🔑 Groq API Key (무료 · 문제 생성용)</div>
+        <label class="lbl">API Key</label>
+        <input type="password" class="inp" id="set-groq" placeholder="gsk_...">
+        <div style="font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:13px;">
+          무료 발급: <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent)">console.groq.com/keys</a> (카드 불필요)
+        </div>
+        <button class="btn btn-p btn-sm" onclick="saveGroq()">저장</button>
+      </div>
+      <div class="card">
+        <div class="card-t">🔥 Firebase 연동 (실시간 양방향 동기화)</div>
+        <div class="fb-note">
+          <div class="fb-note-t">⚡ Firebase 무료 설정 방법</div>
+          <div class="fb-note-b">
+            1. <a href="https://console.firebase.google.com" target="_blank" style="color:var(--accent)">Firebase Console</a> → 새 프로젝트 생성<br>
+            2. Firestore Database → 시작 → 테스트 모드 선택<br>
+            3. 프로젝트 설정(⚙️) → 웹 앱 추가(&lt;/&gt;) → 구성 정보 복사<br>
+            4. 아래 필드에 붙여넣기 후 저장 · 연결
+          </div>
+        </div>
+        <div class="row2">
+          <div><label class="lbl">API Key</label><input type="text" class="inp" id="fb-k" placeholder="AIzaSy..."></div>
+          <div><label class="lbl">Auth Domain</label><input type="text" class="inp" id="fb-d" placeholder="project.firebaseapp.com"></div>
+        </div>
+        <div class="row2">
+          <div><label class="lbl">Project ID</label><input type="text" class="inp" id="fb-p" placeholder="my-proctai"></div>
+          <div><label class="lbl">Storage Bucket</label><input type="text" class="inp" id="fb-b" placeholder="project.appspot.com"></div>
+        </div>
+        <div class="row2">
+          <div><label class="lbl">Messaging Sender ID</label><input type="text" class="inp" id="fb-s" placeholder="123456789"></div>
+          <div><label class="lbl">App ID</label><input type="text" class="inp" id="fb-a" placeholder="1:123:web:abc"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="btn btn-p btn-sm" onclick="saveFb()">Firebase 저장 &amp; 연결</button>
+          <span style="font-size:11px;" id="fb-status"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-t">⚙️ 감독 기준</div>
+        <div class="row2">
+          <div><label class="lbl">시선 이탈 허용(초)</label><input type="number" class="inp" id="set-gaze" value="3" min="1" max="10"></div>
+          <div><label class="lbl">최대 경고 횟수</label><input type="number" class="inp" id="set-maxw" value="3" min="1" max="10"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="saveProctor()">저장</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+let _db=null,_fb=null,_unsub=null;
+const G={
+  logs:JSON.parse(localStorage.getItem('proctor_logs')||'[]'),
+  exams:JSON.parse(localStorage.getItem('proctor_exams')||'[]'),
+  pdfText:'',genQs:[]
+};
+
+// Firebase
+async function initFb(){
+  const c=getFbCfg();
+  if(!c.projectId)return false;
+  try{
+    const {initializeApp,getApps}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const fs=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const app=getApps().length?getApps()[0]:initializeApp(c);
+    _db=fs.getFirestore(app);_fb=fs;
+    window.__db=_db;window.__fb=fs;
+    listenFb();
+    setFbStatus('✅ 연결됨','var(--ok)');
+    return true;
+  }catch(e){setFbStatus('❌ '+e.message,'var(--danger)');return false;}
+}
+function getFbCfg(){try{return JSON.parse(localStorage.getItem('fb_cfg')||'{}')}catch{return{}}}
+function setFbStatus(t,c){const el=document.getElementById('fb-status');el.textContent=t;el.style.color=c;}
+function listenFb(){
+  if(!_db||!_fb)return;
+  const {collection,query,orderBy,limit,onSnapshot,doc,setDoc}=_fb;
+  const q=query(collection(_db,'proctor_logs'),orderBy('ts','desc'),limit(300));
+  if(_unsub)_unsub();
+  _unsub=onSnapshot(q,snap=>{G.logs=snap.docs.map(d=>({id:d.id,...d.data()}));localStorage.setItem('proctor_logs',JSON.stringify(G.logs));refresh();});
+  onSnapshot(collection(_db,'exams'),snap=>{
+    snap.docs.forEach(d=>{const fd={...d.data(),id:d.id};const i=G.exams.findIndex(e=>e.id===fd.id);if(i>=0)G.exams[i]={...G.exams[i],...fd};else G.exams.push(fd);});
+    localStorage.setItem('proctor_exams',JSON.stringify(G.exams));refresh();
+  });
+}
+
+// Nav
+window.nav=(name,btn)=>{
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('page-'+name).classList.add('on');btn.classList.add('on');
+  const L={dashboard:'대시보드',create:'시험 생성',exams:'시험 목록',monitor:'실시간 감독',logs:'전체 로그',settings:'설정'};
+  document.getElementById('crumb').textContent=L[name];
+  if(name==='monitor')renderMonitor();
+  if(name==='logs')renderLogs();
+  if(name==='exams')renderExams();
+  if(name==='dashboard')renderDash();
+};
+
+// PDF
+window.handleDrop=e=>{e.preventDefault();document.getElementById('upload-zone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')processPdf(f);};
+window.handleFile=e=>{const f=e.target.files[0];if(f)processPdf(f);};
+window.clearPdf=()=>{G.pdfText='';document.getElementById('pdf-chip').style.display='none';document.getElementById('pdf-preview').style.display='none';document.getElementById('gen-btn').disabled=true;document.getElementById('gen-status').textContent='PDF를 먼저 업로드하세요';document.getElementById('pdf-inp').value='';};
+
+async function processPdf(file){
+  document.getElementById('pdf-name').textContent=file.name;
+  document.getElementById('pdf-size').textContent=(file.size/1024).toFixed(1)+' KB';
+  document.getElementById('pdf-chip').style.display='flex';
+  document.getElementById('gen-status').textContent='📖 텍스트 추출 중...';
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const buf=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    let txt='';
+    for(let i=1;i<=Math.min(pdf.numPages,20);i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();txt+=tc.items.map(t=>t.str).join(' ')+'\n';}
+    G.pdfText=txt.trim();
+    document.getElementById('pdf-prev-text').textContent=G.pdfText.substring(0,300)+(G.pdfText.length>300?'...':'');
+    document.getElementById('pdf-preview').style.display='block';
+    document.getElementById('gen-btn').disabled=false;
+    document.getElementById('gen-status').textContent=`✅ ${pdf.numPages}페이지 추출 완료`;
+  }catch(e){document.getElementById('gen-status').textContent='❌ 추출 실패: '+e.message;}
+}
+
+// AI Generate
+window.generateQs=async function(){
+  const key=localStorage.getItem('groq_key');
+  if(!key){alert('설정에서 Groq API 키를 먼저 입력하세요!');nav('settings',document.querySelectorAll('.sb-btn')[5]);return;}
+  if(!G.pdfText){alert('PDF를 먼저 업로드하세요');return;}
+  const qcnt=document.getElementById('n-qcnt').value;
+  const diff=document.getElementById('n-diff').value;
+  prog(true,'Groq llama3 요청 중...',15);
+  document.getElementById('gen-btn').disabled=true;
+  document.getElementById('q-preview').innerHTML='';
+  document.getElementById('save-sec').style.display='none';
+  G.genQs=[];
+  const prompt=`다음 교육 자료를 분석하여 ${diff} 난이도의 4지선다 객관식 문제 ${qcnt}개를 생성하세요.\n\n교육 자료:\n${G.pdfText.substring(0,5500)}\n\n반드시 아래 JSON 형식으로만 응답 (다른 텍스트 없이):\n{"questions":[{"question":"문제 내용","options":["① 보기1","② 보기2","③ 보기3","④ 보기4"],"answer":0,"explanation":"해설"}]}\nanswer는 정답 index(0~3). 반드시 한국어.`;
+  try{
+    prog(true,'AI가 문제 생성 중...',45);
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:'llama3-8b-8192',max_tokens:4000,temperature:.7,messages:[{role:'user',content:prompt}]})});
+    prog(true,'응답 파싱 중...',80);
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error?.message||'API 오류 '+res.status);
+    const raw=data.choices[0].message.content.trim().replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(raw);
+    G.genQs=parsed.questions;
+    prog(true,'완료!',100);setTimeout(()=>prog(false),500);
+    renderQPreview(G.genQs);
+    document.getElementById('save-sec').style.display='block';
+    document.getElementById('gen-status').textContent=`✅ ${G.genQs.length}문항 생성 완료`;
+  }catch(e){prog(false);document.getElementById('gen-status').textContent='❌ 실패: '+e.message;}
+  document.getElementById('gen-btn').disabled=false;
+};
+
+function prog(show,step='',pct=0){
+  document.getElementById('gen-prog').style.display=show?'block':'none';
+  if(show){document.getElementById('gen-step').textContent=step;document.getElementById('gen-pct').textContent=pct+'%';document.getElementById('gen-bar').style.width=pct+'%';}
+}
+function renderQPreview(qs){
+  const c=document.getElementById('q-preview');c.innerHTML='';
+  qs.forEach((q,i)=>{const d=document.createElement('div');d.className='q-item fi';d.innerHTML=`<div class="q-head"><div class="q-badge">Q${String(i+1).padStart(2,'0')}</div><div class="q-txt">${q.question}</div></div><div class="q-opts">${q.options.map((o,oi)=>`<div class="q-opt${oi===q.answer?' ans':''}"><div class="opt-l">${['A','B','C','D'][oi]}</div>${o}</div>`).join('')}</div>${q.explanation?`<div class="q-exp">💡 ${q.explanation}</div>`:''}`; c.appendChild(d);});
+}
+
+// Save Exam
+window.saveExam=async function(){
+  const name=document.getElementById('n-name').value.trim();
+  if(!name){alert('시험 이름을 입력하세요');return;}
+  if(!G.genQs.length){alert('문제를 먼저 생성하세요');return;}
+  const exam={id:'exam_'+Date.now(),name,duration:parseInt(document.getElementById('n-dur').value),questions:G.genQs,createdAt:new Date().toISOString(),status:'ready'};
+  G.exams.push(exam);persist();
+  if(_db&&_fb)await _fb.setDoc(_fb.doc(_db,'exams',exam.id),exam).catch(console.warn);
+  alert(`✅ "${name}" 시험 등록!\n응시자 페이지에서 선택 가능합니다.`);
+  nav('exams',document.querySelectorAll('.sb-btn')[2]);renderExams();
+};
+
+// Exams table
+function renderExams(){
+  const tb=document.getElementById('exam-tbody');
+  if(!G.exams.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">등록 없음</td></tr>';return;}
+  const sc={ready:'bb',active:'bg',closed:'bm'};const st={ready:'대기',active:'진행중',closed:'종료'};
+  tb.innerHTML=G.exams.map(e=>{
+    const uniq=[...new Set(G.logs.filter(l=>l.examId===e.id).map(l=>l.studentId))].length;
+    return `<tr><td><strong>${e.name}</strong><br><span style="font-size:10px;color:var(--muted)">${new Date(e.createdAt).toLocaleDateString('ko')}</span></td><td>${e.questions.length}문항</td><td>${Math.floor(e.duration/60)}분</td><td>${uniq}명</td><td><span class="badge ${sc[e.status]||'bb'}">${st[e.status]||'대기'}</span></td><td style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="toggleExam('${e.id}')">${e.status==='active'?'⏹ 종료':'▶ 활성화'}</button><button class="btn btn-ghost btn-sm" onclick="deleteExam('${e.id}')">🗑</button></td></tr>`;
+  }).join('');
+}
+window.toggleExam=id=>{const e=G.exams.find(x=>x.id===id);if(!e)return;e.status=e.status==='active'?'closed':'active';persist();if(_db&&_fb)_fb.setDoc(_fb.doc(_db,'exams',e.id),e).catch(console.warn);renderExams();};
+window.deleteExam=id=>{if(!confirm('삭제?'))return;G.exams=G.exams.filter(e=>e.id!==id);persist();renderExams();};
+
+// Monitor
+function renderMonitor(){
+  const now=Date.now();
+  const recent=G.logs.filter(l=>(now-new Date(l.ts||l.timestamp).getTime())<7200000);
+  const students={};
+  recent.forEach(l=>{if(!students[l.studentId])students[l.studentId]={name:l.studentName,id:l.studentId,exam:l.examName,warns:0,last:l.ts||l.timestamp};if(l.severity==='warn')students[l.studentId].warns++;if(l.severity==='danger')students[l.studentId].warns+=2;students[l.studentId].last=l.ts||l.timestamp;});
+  const list=Object.values(students);
+  const grid=document.getElementById('stu-grid');
+  if(!list.length){grid.innerHTML='<div style="font-size:12px;color:var(--muted)">응시 중인 학생 없음</div>';document.getElementById('mon-live').classList.remove('show');document.getElementById('live-chip').classList.remove('show');document.getElementById('alert-badge').classList.remove('show');return;}
+  document.getElementById('mon-live').classList.add('show');document.getElementById('live-chip').classList.add('show');
+  document.getElementById('mon-exam').textContent=list[0].exam||'진행 중';
+  document.getElementById('alert-badge').classList.toggle('show',list.some(s=>s.warns>=2));
+  grid.innerHTML=list.map(s=>{const pct=Math.max(0,100-s.warns*18);const col=pct>70?'var(--ok)':pct>40?'var(--warn)':'var(--danger)';return `<div class="stu-card ${s.warns>=3?'dc':s.warns>=1?'wc':''}"><div class="stu-top"><div><div class="stu-name">${s.name}</div><div class="stu-id">${s.id}</div></div><div>${s.warns>0?`<span class="badge bw">⚠ ${s.warns}회</span>`:'<span class="badge bg">정상</span>'}</div></div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span style="color:var(--muted)">집중도</span><span style="color:${col}">${pct}%</span></div><div class="mini-bar"><div class="mini-fill" style="width:${pct}%;background:${col}"></div></div><div style="font-size:10px;color:var(--muted);margin-top:7px">${new Date(s.last).toLocaleTimeString('ko')}</div></div>`;}).join('');
+}
+
+// Logs
+window.renderLogs=function(){
+  const ef=document.getElementById('lf-exam').value;const sf=document.getElementById('lf-sev').value;
+  let logs=[...G.logs];if(ef)logs=logs.filter(l=>l.examId===ef);if(sf)logs=logs.filter(l=>l.severity===sf);
+  document.getElementById('log-cnt').textContent=logs.length+'건';
+  const tb=document.getElementById('log-tbody');
+  if(!logs.length){tb.innerHTML='<div style="padding:22px;text-align:center;font-size:12px;color:var(--muted)">로그 없음</div>';return;}
+  const sm={ok:'정상',info:'정보',warn:'경고',danger:'위험'};
+  tb.innerHTML=logs.slice(0,150).map(l=>`<div class="log-row ${l.severity==='danger'?'rd':l.severity==='warn'?'rw':''}"><div class="log-time">${new Date(l.ts||l.timestamp).toLocaleTimeString('ko')}</div><div class="log-stu">${l.studentName}<br><span style="color:var(--muted);font-size:10px">${l.studentId}</span></div><div>${l.event} — ${l.detail}</div><div><span class="sev sv-${l.severity}">${sm[l.severity]||l.severity}</span></div></div>`).join('');
+};
+window.exportCsv=()=>{const rows=['시각,학번,이름,시험,이벤트,내용,등급',...G.logs.map(l=>`${new Date(l.ts||l.timestamp).toLocaleString('ko')},${l.studentId},${l.studentName},${l.examName||''},${l.event},"${l.detail}",${l.severity}`)];const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(rows.join('\n'));a.download=`proctor_logs_${new Date().toISOString().slice(0,10)}.csv`;a.click();};
+
+// Dashboard
+function renderDash(){
+  document.getElementById('d-exams').textContent=G.exams.length;
+  document.getElementById('d-active').textContent=G.exams.filter(e=>e.status==='active').length;
+  document.getElementById('d-warns').textContent=G.logs.filter(l=>l.severity==='warn'||l.severity==='danger').length;
+  document.getElementById('d-term').textContent=G.logs.filter(l=>l.event&&l.event.includes('강제 종료')).length;
+  const ic={ok:'✅',info:'ℹ️',warn:'⚠️',danger:'🚨'};
+  document.getElementById('d-loglist').innerHTML=G.logs.slice(0,5).map(l=>`<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid rgba(30,42,61,.4)"><span>${ic[l.severity]||'•'}</span><span style="color:var(--muted);font-size:10px">${new Date(l.ts||l.timestamp).toLocaleTimeString('ko')}</span><span><strong>${l.studentName}</strong> — ${l.event}</span></div>`).join('')||'<div style="font-size:12px;color:var(--muted)">이벤트 없음</div>';
+  document.getElementById('d-examlist').innerHTML=G.exams.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(30,42,61,.4)"><span style="font-size:13px;font-weight:600">${e.name}</span><span class="badge ${e.status==='active'?'bg':'bb'}">${e.status==='active'?'진행중':'대기'}</span></div>`).join('')||'<div style="font-size:12px;color:var(--muted)">시험을 먼저 생성하세요</div>';
+  const sel=document.getElementById('lf-exam');const cur=sel.value;
+  sel.innerHTML='<option value="">전체 시험</option>'+G.exams.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');sel.value=cur;
+}
+
+function persist(){localStorage.setItem('proctor_exams',JSON.stringify(G.exams));localStorage.setItem('proctor_logs',JSON.stringify(G.logs));}
+function refresh(){renderDash();renderMonitor();renderLogs();renderExams();}
+
+// Settings
+window.saveAdmin=()=>{const v=document.getElementById('set-admin').value.trim()||'관리자';localStorage.setItem('admin_name',v);document.getElementById('admin-name-disp').textContent=v;alert('저장됨');};
+window.saveGroq=()=>{localStorage.setItem('groq_key',document.getElementById('set-groq').value.trim());alert('✅ Groq API 키 저장 완료');};
+window.saveFb=async()=>{const cfg={apiKey:document.getElementById('fb-k').value.trim(),authDomain:document.getElementById('fb-d').value.trim(),projectId:document.getElementById('fb-p').value.trim(),storageBucket:document.getElementById('fb-b').value.trim(),messagingSenderId:document.getElementById('fb-s').value.trim(),appId:document.getElementById('fb-a').value.trim()};localStorage.setItem('fb_cfg',JSON.stringify(cfg));await initFb();};
+window.saveProctor=()=>{localStorage.setItem('proctor_cfg',JSON.stringify({gaze:document.getElementById('set-gaze').value,maxw:document.getElementById('set-maxw').value}));alert('저장됨');};
+
+// Poll localStorage fallback
+setInterval(()=>{
+  const lg=JSON.parse(localStorage.getItem('proctor_logs')||'[]');if(lg.length!==G.logs.length){G.logs=lg;refresh();}
+  const ex=JSON.parse(localStorage.getItem('proctor_exams')||'[]');if(ex.length!==G.exams.length){G.exams=ex;refresh();}
+},1500);
+
+// Init
+(async()=>{
+  const an=localStorage.getItem('admin_name')||'관리자';
+  document.getElementById('admin-name-disp').textContent=an;document.getElementById('set-admin').value=an;
+  document.getElementById('set-groq').value=localStorage.getItem('groq_key')||'';
+  const fc=getFbCfg();
+  if(fc.projectId){document.getElementById('fb-k').value=fc.apiKey||'';document.getElementById('fb-d').value=fc.authDomain||'';document.getElementById('fb-p').value=fc.projectId||'';document.getElementById('fb-b').value=fc.storageBucket||'';document.getElementById('fb-s').value=fc.messagingSenderId||'';document.getElementById('fb-a').value=fc.appId||'';await initFb();}
+  const pc=JSON.parse(localStorage.getItem('proctor_cfg')||'{}');
+  if(pc.gaze)document.getElementById('set-gaze').value=pc.gaze;if(pc.maxw)document.getElementById('set-maxw').value=pc.maxw;
+  renderDash();
+})();
+</script>
+</body>
+</html>
