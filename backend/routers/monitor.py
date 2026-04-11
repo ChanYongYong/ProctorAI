@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.responses import StreamingResponse
+from schemas import AttemptStatusChange
 from auth import require_admin
 from db import get_conn
 import io
@@ -30,6 +31,27 @@ async def live_students(user: dict = Depends(require_admin)):
         )
         rows = await cur.fetchall()
     return rows
+
+
+# PATCH /api/admin/attempts/{attempt_id}/status — attempt 상태 변경
+@router.patch("/admin/attempts/{attempt_id}/status")
+async def change_attempt_status(attempt_id: int, body: AttemptStatusChange, user: dict = Depends(require_admin)):
+    valid = ("in_progress", "under_review", "submitted", "terminated")
+    if body.status not in valid:
+        raise HTTPException(400, f"status must be one of {valid}")
+
+    async with get_conn() as (conn, cur):
+        await cur.execute("SELECT id, status FROM attempts WHERE id = %s", (attempt_id,))
+        attempt = await cur.fetchone()
+        if not attempt:
+            raise HTTPException(404, "attempt not found")
+
+        await cur.execute(
+            "UPDATE attempts SET status = %s WHERE id = %s",
+            (body.status, attempt_id),
+        )
+
+    return {"attempt_id": attempt_id, "old_status": attempt["status"], "new_status": body.status}
 
 
 # GET /api/admin/attempts/{attempt_id}/logs — 응시자별 로그 조회

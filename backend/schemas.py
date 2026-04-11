@@ -43,6 +43,14 @@ class QuestionGenerate(BaseModel):
     count: int = 10
     type: str = "choice"
 
+class QuestionCreate(BaseModel):
+    exam_id: int
+    type: str = "choice"
+    text: str
+    options: Optional[list] = None
+    answer: str
+    explanation: Optional[str] = None
+
 class QuestionUpdate(BaseModel):
     text: Optional[str] = None
     options: Optional[list] = None
@@ -93,3 +101,9 @@ class ClarificationCreate(BaseModel):
 class DecisionRequest(BaseModel):
     status: str
     teacher_comment: Optional[str] = None
+
+
+# ── 관리자 상태 변경 ──
+
+class AttemptStatusChange(BaseModel):
+    status: str

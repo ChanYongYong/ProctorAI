@@ -1,6 +1,6 @@
 import json
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
-from schemas import QuestionGenerate, QuestionUpdate
+from schemas import QuestionCreate, QuestionGenerate, QuestionUpdate
 from auth import require_admin
 from db import get_conn
 import httpx
@@ -8,6 +8,39 @@ from PyPDF2 import PdfReader
 import io
 
 router = APIRouter()
+
+
+# POST /api/questions — 문제 수동 생성
+@router.post("/questions", status_code=201)
+async def create_question(body: QuestionCreate, user: dict = Depends(require_admin)):
+    async with get_conn() as (conn, cur):
+        await cur.execute("SELECT id FROM exams WHERE id = %s", (body.exam_id,))
+        if not await cur.fetchone():
+            raise HTTPException(404, "exam not found")
+
+        await cur.execute(
+            "SELECT COALESCE(MAX(number), 0) AS max_num FROM questions WHERE exam_id = %s",
+            (body.exam_id,),
+        )
+        max_num = (await cur.fetchone())["max_num"]
+
+        options_json = json.dumps(body.options, ensure_ascii=False) if body.options else None
+        await cur.execute(
+            """INSERT INTO questions (exam_id, number, type, text, options, answer, explanation)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (body.exam_id, max_num + 1, body.type, body.text, options_json, body.answer, body.explanation),
+        )
+        q_id = cur.lastrowid
+
+        await cur.execute(
+            "SELECT id, number, type, text, options, answer, explanation FROM questions WHERE id = %s",
+            (q_id,),
+        )
+        q = await cur.fetchone()
+
+    if q["options"] and isinstance(q["options"], str):
+        q["options"] = json.loads(q["options"])
+    return q
 
 
 # POST /api/questions/extract-pdf — PDF 텍스트 추출

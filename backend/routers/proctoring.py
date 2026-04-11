@@ -60,6 +60,8 @@ async def end_exam(attempt_id: int, body: EndExamRequest, user: dict = Depends(g
             raise HTTPException(404, "attempt not found")
         if attempt["user_id"] != user["id"]:
             raise HTTPException(403, "not your attempt")
+        if attempt["status"] != "in_progress":
+            raise HTTPException(400, "attempt already finished")
 
         await cur.execute(
             """UPDATE attempts
