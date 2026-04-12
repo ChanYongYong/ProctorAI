@@ -95,7 +95,7 @@ async def generate_questions(body: QuestionGenerate, user: dict = Depends(requir
         f"다음 교육 자료를 분석하여 {type_desc} 문제 {body.count}개를 생성하세요.\n\n"
         f"교육 자료:\n{body.source_text[:5500]}\n\n"
         f"반드시 아래 JSON 형식으로만 응답 (다른 텍스트 없이):\n{format_desc}\n"
-        f"answer는 정답 index(0~3). 반드시 한국어."
+        f"answer는 정답 index(0~3). 반드시 한국어. 반드시 정확히 {body.count}개만 생성."
     )
 
     # Groq API 호출
@@ -122,7 +122,7 @@ async def generate_questions(body: QuestionGenerate, user: dict = Depends(requir
         # ```json ... ``` 제거
         raw = raw.replace("```json", "").replace("```", "").strip()
         parsed = json.loads(raw)
-        questions = parsed["questions"]
+        questions = parsed["questions"][:body.count]
     except json.JSONDecodeError:
         raise HTTPException(502, "AI response is not valid JSON")
     except (KeyError, IndexError):
