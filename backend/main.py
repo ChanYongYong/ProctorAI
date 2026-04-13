@@ -37,6 +37,7 @@ from routers import settings as settings_router
 from routers import proctoring as proctoring_router
 from routers import monitor as monitor_router
 from routers import clarifications as clarifications_router
+from routers import groq_proxy as groq_proxy_router
 
 app.include_router(auth_router.router, prefix="/api/auth", tags=["auth"])
 app.include_router(exams_router.router, prefix="/api", tags=["exams"])
@@ -47,3 +48,4 @@ app.include_router(settings_router.router, prefix="/api", tags=["settings"])
 app.include_router(proctoring_router.router, prefix="/api/student", tags=["proctoring"])
 app.include_router(monitor_router.router, prefix="/api", tags=["monitor"])
 app.include_router(clarifications_router.router, prefix="/api", tags=["clarifications"])
+app.include_router(groq_proxy_router.router, prefix="/api", tags=["groq"])
