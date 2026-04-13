@@ -12,9 +12,11 @@ async def _build_result(cur, attempt_id: int) -> dict:
         """SELECT a.id AS attempt_id, a.status, a.score,
                   a.warning_count, a.total_away_time, a.voice_alerts,
                   a.started_at, a.submitted_at,
-                  e.title AS exam_title
+                  e.title AS exam_title,
+                  u.name AS user_name
              FROM attempts a
              JOIN exams e ON a.exam_id = e.id
+             JOIN users u ON a.user_id = u.id
             WHERE a.id = %s""",
         (attempt_id,),
     )
