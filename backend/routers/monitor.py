@@ -33,6 +33,23 @@ async def live_students(user: dict = Depends(require_admin)):
     return rows
 
 
+# POST /api/admin/attempts/{attempt_id}/message — 관리자 메시지 주입
+@router.post("/admin/attempts/{attempt_id}/message", status_code=201)
+async def admin_send_message(attempt_id: int, body: dict, user: dict = Depends(require_admin)):
+    msg = body.get("message", "").strip()
+    if not msg:
+        raise HTTPException(400, "message required")
+    async with get_conn() as (conn, cur):
+        await cur.execute("SELECT id FROM attempts WHERE id = %s", (attempt_id,))
+        if not await cur.fetchone():
+            raise HTTPException(404, "attempt not found")
+        await cur.execute(
+            "INSERT INTO proctoring_logs (attempt_id, severity, event, detail) VALUES (%s, %s, %s, %s)",
+            (attempt_id, "info", "관리자 메시지", msg),
+        )
+    return {"ok": True}
+
+
 # PATCH /api/admin/attempts/{attempt_id}/status — attempt 상태 변경
 @router.patch("/admin/attempts/{attempt_id}/status")
 async def change_attempt_status(attempt_id: int, body: AttemptStatusChange, user: dict = Depends(require_admin)):

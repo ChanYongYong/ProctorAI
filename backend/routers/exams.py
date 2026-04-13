@@ -68,6 +68,23 @@ async def get_exam(exam_id: int, user: dict = Depends(require_admin)):
     return exam
 
 
+# PATCH /api/exams/{exam_id} — 시험 제목/설정 변경
+@router.patch("/exams/{exam_id}")
+async def update_exam(exam_id: int, body: dict, user: dict = Depends(require_admin)):
+    allowed = {"title", "duration"}
+    updates = {k: v for k, v in body.items() if k in allowed and v is not None}
+    if not updates:
+        raise HTTPException(400, "nothing to update")
+    async with get_conn() as (conn, cur):
+        await cur.execute("SELECT id FROM exams WHERE id = %s", (exam_id,))
+        if not await cur.fetchone():
+            raise HTTPException(404, "exam not found")
+        set_clause = ", ".join(f"{k} = %s" for k in updates)
+        await cur.execute(f"UPDATE exams SET {set_clause} WHERE id = %s", (*updates.values(), exam_id))
+        await cur.execute("SELECT id, title, duration, status FROM exams WHERE id = %s", (exam_id,))
+        return await cur.fetchone()
+
+
 # PATCH /api/exams/{exam_id}/status — 상태 변경
 @router.patch("/exams/{exam_id}/status")
 async def change_status(exam_id: int, body: StatusChange, user: dict = Depends(require_admin)):

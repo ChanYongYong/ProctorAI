@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from schemas import SettingsUpdate
-from auth import require_admin
+from auth import require_admin, get_current_user
 from db import get_conn
 
 router = APIRouter()
@@ -18,6 +18,18 @@ async def get_settings(user: dict = Depends(require_admin)):
         )
         row = await cur.fetchone()
     return row if row else DEFAULTS
+
+
+# GET /api/student/groq-key — 학생용 Groq 키 조회 (인증된 모든 사용자)
+@router.get("/student/groq-key")
+async def get_groq_key(user: dict = Depends(get_current_user)):
+    async with get_conn() as (conn, cur):
+        # 관리자(admin role)의 설정에서 groq_key를 가져옴
+        await cur.execute(
+            "SELECT groq_key FROM settings s JOIN users u ON u.id = s.user_id WHERE u.role = 'admin' LIMIT 1"
+        )
+        row = await cur.fetchone()
+    return {"groq_key": row["groq_key"] if row and row["groq_key"] else ""}
 
 
 # PUT /api/admin/settings — 설정 저장

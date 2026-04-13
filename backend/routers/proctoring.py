@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from schemas import LogCreate, EndExamRequest
 from auth import get_current_user
 from db import get_conn
@@ -75,3 +75,31 @@ async def end_exam(attempt_id: int, body: EndExamRequest, user: dict = Depends(g
         )
 
     return {"attempt_id": attempt_id, "status": "terminated"}
+
+
+# GET /api/student/attempts/{attempt_id}/commands — 관리자 명령 폴링 (학생용)
+@router.get("/attempts/{attempt_id}/commands")
+async def get_commands(attempt_id: int, since_id: int = Query(0), user: dict = Depends(get_current_user)):
+    async with get_conn() as (conn, cur):
+        await cur.execute(
+            "SELECT id, user_id, status FROM attempts WHERE id = %s", (attempt_id,)
+        )
+        attempt = await cur.fetchone()
+        if not attempt:
+            raise HTTPException(404, "attempt not found")
+        if attempt["user_id"] != user["id"]:
+            raise HTTPException(403, "not your attempt")
+
+        # since_id 이후의 관리자 메시지만 반환
+        await cur.execute(
+            """SELECT id, detail FROM proctoring_logs
+               WHERE attempt_id = %s AND event = '관리자 메시지' AND id > %s
+               ORDER BY id ASC""",
+            (attempt_id, since_id),
+        )
+        messages = await cur.fetchall()
+
+    return {
+        "status": attempt["status"],
+        "messages": [{"id": m["id"], "text": m["detail"]} for m in messages],
+    }
